@@ -29,10 +29,19 @@ class PushToGitHubController extends PhabricatorController {
     $repo = 'test-repo';
     $blob_sha = '46b67d951d1094069a171385184f49340088579d';
 
-    $uri = new PhutilURI("https://api.github.com/repos/$github_user/$repo/git/blobs/$blob_sha");
+    // $new_blob_created = "e31d47b45048e0a1b66326cb46c9643cd04b5b84";
+
+    $encoded_data = json_encode(
+      array(
+        'encoding'=> 'utf-8',
+        'content' => 'random text with a twist',
+      ));
+var_dump($encoded_data);
+    $uri = new PhutilURI("https://api.github.com/repos/$github_user/$repo/git/blobs");
     $uri->setQueryParam('access_token', $access_token);
     $future = new HTTPSFuture($uri);
-    // $future->setMethod('POST');
+    $future->setMethod('POST');
+    $future->setData($encoded_data);
 
     // NOTE: GitHub requires a User-Agent string.
     $future->addHeader('User-Agent', 'PhutilAuthAdapterOAuthGitHub');
