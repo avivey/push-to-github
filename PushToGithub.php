@@ -33,23 +33,16 @@ class PushToGitHubController extends PhabricatorController {
 
     $encoded_data = json_encode(
       array(
-        'tree' => array(
-          array(
-            'path' => 'random',
-            'mode' => '100644',
-            'type' => 'blob',
-            'sha'  => $new_blob_created
-          ),
-          array(
-            'path' => 'ad-hoc',
-            'mode' => '100644',
-            'type' => 'blob',
-            'content' => 'MORE DATA',
-          ),
-        ),
-      ));
+        'message' => 'created via api',
+        'tree' => '7611f602575ea17aa782ae8aa55ae78009306527',
+        'parents' => array('b50ef158ca29dc9a3a9d7d9cfafdccd766e67209')
+        )
+      );
     $first_tree_sha = '476a54eee64147046209c323ad82acf3b4bfaa75';
-    $uri = new PhutilURI("https://api.github.com/repos/$github_user/$repo/git/trees");
+    $new_tree = '7611f602575ea17aa782ae8aa55ae78009306527';
+    $new_commit_sha = 'a6faa74a475e0567962c94b041cf1481a3b99a41';
+
+    $uri = new PhutilURI("https://api.github.com/repos/$github_user/$repo/git/commits");
     $uri->setQueryParam('access_token', $access_token);
     $future = new HTTPSFuture($uri);
     $future->setMethod('POST');
