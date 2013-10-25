@@ -1,42 +1,118 @@
 <?php
 
 class PushToGitHubController extends PhabricatorController {
+
+  const GITHUB_PROVIDER_KEY = 'github:github.com';
+  const TEST_REPO_GIT_ID = 13850529;
+
   public function processRequest() {
     $request = $this->getRequest();
     $viewer = $request->getUser();
     $panel = id(new AphrontPanelView())
       ->setHeader("Header");
 
-    $p='github:github.com';
 
-    $providers = PhabricatorAuthProvider::getAllProviders();
+    $github_provider = PhabricatorAuthProvider::getEnabledProviderByKey(self::GITHUB_PROVIDER_KEY);
+
     $account = id(new PhabricatorExternalAccountQuery())
       ->setViewer($viewer)
       ->withUserPHIDs(array($viewer->getPHID()))
       ->withAccountDomains(array("github.com"))
       ->executeOne();
 
-
-    $github_provider = idx($providers, $p);
   //  $account = idx($accounts, $p);
     $access_token = $github_provider->getOAuthAccessToken($account  );
     // $panel->appendChild($access_token);
 
-    $uri = new PhutilURI('https://api.github.com/rate_limit');
+    $github_user = 'avivey';
+    $repo = self::TEST_REPO_GIT_ID;
+    $repo = 'test-repo';
+    $blob_sha = '46b67d951d1094069a171385184f49340088579d';
+
+    $uri = new PhutilURI("https://api.github.com/repos/$github_user/$repo/git/blobs/$blob_sha");
     $uri->setQueryParam('access_token', $access_token);
     $future = new HTTPSFuture($uri);
+    // $future->setMethod('POST');
 
     // NOTE: GitHub requires a User-Agent string.
     $future->addHeader('User-Agent', 'PhutilAuthAdapterOAuthGitHub');
 
-    list($body) = $future->resolvex();
+    list($status, $body, $headers)  = $future->resolve();
+    // var_dump($status);
+    // var_dump($headers);
+    $dd = json_decode($body, true);
 
-    $panel->appendChild($body);
+    var_dump(base64_decode($dd['content']));
+
+    return $this->buildHumanReadableResponse(array($headers, 'result'=>$dd));
+  }
+
+  private function buildHumanReadableResponse(
+    $result) {
+
+    $param_rows = array();
+
+    $param_table = new AphrontTableView($param_rows);
+    $param_table->setDeviceReadyTable(true);
+    $param_table->setColumnClasses(
+      array(
+        'header',
+        'wide',
+      ));
+
+    $result_rows = array();
+    foreach ($result as $key => $value) {
+      $result_rows[] = array(
+        $key,
+        $this->renderAPIValue($value),
+      );
+    }
+
+    $result_table = new AphrontTableView($result_rows);
+    $result_table->setDeviceReadyTable(true);
+    $result_table->setColumnClasses(
+      array(
+        'header',
+        'wide',
+      ));
+
+    $param_panel = new AphrontPanelView();
+    $param_panel->setHeader('Method Parameters');
+    $param_panel->appendChild($param_table);
+
+    $result_panel = new AphrontPanelView();
+    $result_panel->setHeader('Method Result');
+    $result_panel->appendChild($result_table);
+
+    $param_head = id(new PHUIHeaderView())
+      ->setHeader(pht('Method Parameters'));
+
+    $result_head = id(new PHUIHeaderView())
+      ->setHeader(pht('Method Result'));
+
 
     return $this->buildApplicationPage(
-      $panel,
-      array(      )
-      );
+      array(
+        // $crumbs,
+        // $param_head,
+        // $param_table,
+        $result_head,
+        $result_table,
+      ),
+      array(
+        'title' => 'Method Call Result',
+        'device' => true,
+      ));
+  }
+  function renderAPIValue($value) {
+    $json = new PhutilJSON();
+    if (is_array($value)) {
+      $value = $json->encodeFormatted($value);
+    }
+
+    $value = hsprintf('<pre style="white-space: pre-wrap;">%s</pre>', $value);
+
+    return $value;
   }
 
 }
