@@ -29,15 +29,27 @@ class PushToGitHubController extends PhabricatorController {
     $repo = 'test-repo';
     $blob_sha = '46b67d951d1094069a171385184f49340088579d';
 
-    // $new_blob_created = "e31d47b45048e0a1b66326cb46c9643cd04b5b84";
+    $new_blob_created = "e31d47b45048e0a1b66326cb46c9643cd04b5b84";
 
     $encoded_data = json_encode(
       array(
-        'encoding'=> 'utf-8',
-        'content' => 'random text with a twist',
+        'tree' => array(
+          array(
+            'path' => 'random',
+            'mode' => '100644',
+            'type' => 'blob',
+            'sha'  => $new_blob_created
+          ),
+          array(
+            'path' => 'ad-hoc',
+            'mode' => '100644',
+            'type' => 'blob',
+            'content' => 'MORE DATA',
+          ),
+        ),
       ));
-var_dump($encoded_data);
-    $uri = new PhutilURI("https://api.github.com/repos/$github_user/$repo/git/blobs");
+    $first_tree_sha = '476a54eee64147046209c323ad82acf3b4bfaa75';
+    $uri = new PhutilURI("https://api.github.com/repos/$github_user/$repo/git/trees");
     $uri->setQueryParam('access_token', $access_token);
     $future = new HTTPSFuture($uri);
     $future->setMethod('POST');
@@ -51,7 +63,7 @@ var_dump($encoded_data);
     // var_dump($headers);
     $dd = json_decode($body, true);
 
-    var_dump(base64_decode($dd['content']));
+    // var_dump(base64_decode($dd['content']));
 
     return $this->buildHumanReadableResponse(array($headers, 'result'=>$dd));
   }
