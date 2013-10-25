@@ -31,21 +31,19 @@ class PushToGitHubController extends PhabricatorController {
 
     $new_blob_created = "e31d47b45048e0a1b66326cb46c9643cd04b5b84";
 
-    $encoded_data = json_encode(
-      array(
-        'message' => 'created via api',
-        'tree' => '7611f602575ea17aa782ae8aa55ae78009306527',
-        'parents' => array('b50ef158ca29dc9a3a9d7d9cfafdccd766e67209')
-        )
-      );
     $first_tree_sha = '476a54eee64147046209c323ad82acf3b4bfaa75';
     $new_tree = '7611f602575ea17aa782ae8aa55ae78009306527';
     $new_commit_sha = 'a6faa74a475e0567962c94b041cf1481a3b99a41';
+    $encoded_data = json_encode(
+      array(
+        'sha'=> $new_commit_sha
+        )
+      );
 
-    $uri = new PhutilURI("https://api.github.com/repos/$github_user/$repo/git/commits");
+    $uri = new PhutilURI("https://api.github.com/repos/$github_user/$repo/git/refs/heads/master");
     $uri->setQueryParam('access_token', $access_token);
     $future = new HTTPSFuture($uri);
-    $future->setMethod('POST');
+    $future->setMethod('PATCH');
     $future->setData($encoded_data);
 
     // NOTE: GitHub requires a User-Agent string.
