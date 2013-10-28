@@ -136,7 +136,8 @@ class PushToGitHubApp extends PhabricatorApplication {
 
   public function getRoutes() {
     return array(
-      '/magic/' => 'PushToGitHubController',
+      '/magic/' => 'PushToGitFindDetailsController',
+      '/big-magic/' => 'PushToGitHubController',
     );
   }
 
