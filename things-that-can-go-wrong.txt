@@ -1,0 +1,9 @@
+
+  - no gh account linked
+  - linked, but token has no access
+  - no permission to push, gh side (404!)
+  - not a gh repo
+  - diff has a missing binary file
+  - not fast-forward / repo moving too fast.
+
+
