@@ -5,7 +5,7 @@ class PushToGitFindDetailsController extends AvivUtilController {
     $request = $this->getRequest();
     $viewer = $request->getUser();
 
-    $pwd = '/home/avive/code/test-repo/';
+    $pwd = '/tmp/phwork/tst__workspace/';
 
     $future = new ExecFuture(
       '/bin/bash -c %s',
@@ -25,14 +25,17 @@ class PushToGitFindDetailsController extends AvivUtilController {
     }
 
     $access_token = GithubApiCallFuture::getAccessToken($viewer);
+    $dd['token'] = $access_token;
     $futures = array();
     foreach ($new_blobs as $blob) {
-      // $content = file_get_contents($pwd.$blob['path']);
-      // $content = base64_encode($content);
-      // $future =
-       // self::makePushBlobFuture('avivey/test-repo', $content, $access_token);
-      // $futures[$blob['sha']] = $future;
+      $content = file_get_contents($pwd.$blob['path']);
+      $content = base64_encode($content);
+      $future =
+       self::makePushBlobFuture('avivey/test-repo', $content, $access_token);
+      $futures[$blob['sha']] = $future;
     }
+
+    $repo = 'avivey/test-repo';
 
     $parsed = array();
     foreach ($futures as $hash => $future) {
@@ -67,11 +70,18 @@ class PushToGitFindDetailsController extends AvivUtilController {
       'avivey/test-repo',
       $commit_info['message'],
       $commit_info['tree'],
-      $commit_info['parent'],
+      $commit_info['parent'], // TODO add author data.
       $access_token
       );
-    $dd['create make commit'] = self::parseGithubApiFuture($future);
+    $commit = self::parseGithubApiFuture($future);
+    $dd['create make commit'] = $commit;
+    $commit = idx($commit, 'body');
+    $commit = idx($commit, 'sha');
 
+    if ($commit) {
+      $future = $this->makeUpdateMasterFuture($repo, $commit, $access_token);
+      $dd['update'] = self::parseGithubApiFuture($future);
+    }
     return $this->buildHumanReadableResponse($dd);
   }
 
@@ -95,6 +105,17 @@ class PushToGitFindDetailsController extends AvivUtilController {
       $data);
     $future->setMethod('POST');
 
+    return $future->start();
+  }
+
+  function makeUpdateMasterFuture($repo, $commit, $access_token) {
+    $data = array('sha' => $commit);
+
+    $future = new GithubApiCallFuture(
+      "repos/$repo/git/refs/heads/master",
+      $access_token,
+      $data);
+    $future->setMethod('PATCH');
     return $future->start();
   }
 
@@ -124,10 +145,12 @@ class PushToGitFindDetailsController extends AvivUtilController {
   }
 
   function parseGithubApiFuture($future) {
+    $dd = array();
+    // $dd['uri'] = ''.$future->uri;
     list($status, $body, $headers) = $future->resolve();
 
     $dd['api status'] = $status->getStatusCode();
-//    $dd['headers'] = $headers;
+    // $dd['headers'] = $headers;
     $dd['body'] = json_decode($body, true);
     return $dd;
   }

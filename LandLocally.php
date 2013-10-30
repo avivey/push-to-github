@@ -54,14 +54,15 @@ class LandLocally  extends AvivUtilController {
       'phid = %s',
       $revision->getAuthorPHID());
 
+
     $author_string = $author->getRealName().' <'.$author->loadPrimaryEmailAddress().'>';
     $workspace->execxLocal(
       '-c user.name=%s -c user.email=%s commit -m %s --author=%s',
+      // -c will set the 'commiter'
       $viewer->getRealName(),
       $viewer->loadPrimaryEmailAddress(),
       $message,
-      $author_string
-      );
+      $author_string);
 
     $dd['log'] = $workspace->execxLocal('log -1 --format=fuller');
     $dd['log'] = $dd['log'][0];

@@ -4,7 +4,7 @@ class GithubApiCallFuture extends FutureProxy {
   const BASE_URI = 'https://api.github.com/' ; // todo get this from provider.
   const GITHUB_PROVIDER_KEY = 'github:github.com';
 
-  private $uri;
+  public $uri;
   private $future;
 
   public static function getAccessToken(PhabricatorUser $user) {
