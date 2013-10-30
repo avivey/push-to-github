@@ -50,14 +50,20 @@ class LandLocally  extends AvivUtilController {
     $message = $call->execute();
     // $dd['message'] = $message;
 
+    $author = id(new PhabricatorUser())->loadOneWhere(
+      'phid = %s',
+      $revision->getAuthorPHID());
+
+    $author_string = $author->getRealName().' <'.$author->loadPrimaryEmailAddress().'>';
     $workspace->execxLocal(
-      '-c user.name=%s -c user.email=%s  commit -m %s',
-      'aviv e',
-      'aviv@mail.com',
-      $message
+      '-c user.name=%s -c user.email=%s commit -m %s --author=%s',
+      $viewer->getRealName(),
+      $viewer->loadPrimaryEmailAddress(),
+      $message,
+      $author_string
       );
 
-    $dd['log'] = $workspace->execxLocal('log -1');
+    $dd['log'] = $workspace->execxLocal('log -1 --format=fuller');
     $dd['log'] = $dd['log'][0];
 
     return $this->buildHumanReadableResponse($dd);
