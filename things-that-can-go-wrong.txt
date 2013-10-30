@@ -5,5 +5,8 @@
   - not a gh repo
   - diff has a missing binary file
   - not fast-forward / repo moving too fast.
+  - not git repo
+  - diff not based on something from remote. (if implemented with rebase)
+  - diff does not apply cleanly to master (if implemented with patch)
 
 
