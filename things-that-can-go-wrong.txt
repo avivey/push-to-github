@@ -8,5 +8,6 @@
   - not git repo
   - diff not based on something from remote. (if implemented with rebase)
   - diff does not apply cleanly to master (if implemented with patch)
+  - blob created with hashcode that is different to the local one
 
 
