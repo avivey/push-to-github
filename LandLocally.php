@@ -5,6 +5,7 @@ class LandLocally  extends AvivUtilController {
     $request = $this->getRequest();
     $viewer = $request->getUser();
     $dd = array();
+    $good = true;
 
     $revision_id = $request->getInt('revisionID');
     if (!strlen($revision_id)) {
@@ -51,6 +52,7 @@ class LandLocally  extends AvivUtilController {
       $workspace->execxLocal('apply --index %s', $tmp_file);
     } catch (CommandException $ex) {
       $dd['apply exception'] = $ex->getMessage();
+      $good = false;
     }
     $dd['status'] = $workspace->execxLocal('status');
     $dd['status'] = $dd['status'][0];
@@ -83,23 +85,30 @@ class LandLocally  extends AvivUtilController {
         $author_string);
     } catch (CommandException $ex) {
       $dd['commit exception'] = $ex->getMessage();
+      $good = false;
     }
 
     $dd['log'] = $workspace->execxLocal('log -1 --format=fuller');
     $dd['log'] = $dd['log'][0];
 
-    $dd['landed locally'] = true;
+    $dd['landed locally'] = $good;
 
     return $dd;
   }
 
   function getCleanWorkspace(PhabricatorRepository $repo) {
-    $path = $repo->getLocalPath();
+    $origin_path = $repo->getLocalPath();
 
-    $path = rtrim($path, '/');
+    $path = rtrim($origin_path, '/');
     $path = $path . '__workspace';
 
-    // todo clone.
+    if (! Filesystem::pathExists($path)) {
+      $future = new ExecFuture(
+        'git clone file://%s %s',
+        $origin_path,
+        $path);
+      $future->resolve();
+    }
 
     $workspace = new ArcanistGitAPI($path);
     $workspace->execxLocal('clean -fd');
