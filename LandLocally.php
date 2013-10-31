@@ -12,13 +12,19 @@ class LandLocally  extends AvivUtilController {
       return $this->build($dd);
     }
 
+    return $this->build(
+      $this->landRevisionLocally($revision_id, $viewer));
+    }
+
+  public function landRevisionLocally($revision_id, $viewer) {
     $revision = id(new DifferentialRevisionQuery())
       ->withIDs(array($revision_id))
       ->setViewer($viewer)
       ->executeOne();
     if (!$revision) {
-      return $this->build(array('error'=> "revision $revision_id not found"));
+      return array('error'=> "revision $revision_id not found");
     }
+    $dd = array();
 
     $diff = $revision->loadActiveDiff();
     $diff_id = $diff->getID();
@@ -39,7 +45,7 @@ class LandLocally  extends AvivUtilController {
     $repo = id(new PhabricatorRepository())->
       loadOneWhere('callsign = %s', 'TST');
     $workspace = $this->getCleanWorkspace($repo);
-    // $dd['path'] = $workspace;
+    $dd['workdir'] = $workspace->getPath();
 
     try {
       $workspace->execxLocal('apply --index %s', $tmp_file);
@@ -79,18 +85,19 @@ class LandLocally  extends AvivUtilController {
       $dd['commit exception'] = $ex->getMessage();
     }
 
-
     $dd['log'] = $workspace->execxLocal('log -1 --format=fuller');
     $dd['log'] = $dd['log'][0];
 
-    return $this->buildHumanReadableResponse($dd);
+    $dd['landed locally'] = true;
+
+    return $dd;
   }
 
   function getCleanWorkspace(PhabricatorRepository $repo) {
     $path = $repo->getLocalPath();
 
     $path = rtrim($path, '/');
-    $path = $path . '__workspace/';
+    $path = $path . '__workspace';
 
     // todo clone.
 

@@ -3,11 +3,15 @@
 abstract class AvivUtilController extends PhabricatorController{
 
   function build($result) {
-    return $this->buildHumanReadableResponse($result);
+    return self::buildFor($this, $result);
   }
-
   function buildHumanReadableResponse(
     $result) {
+    return self::buildFor($this, $result);
+  }
+
+  public static function buildFor($controller, array $data) {
+    $result = $data;
 
     $param_rows = array();
 
@@ -23,7 +27,7 @@ abstract class AvivUtilController extends PhabricatorController{
     foreach ($result as $key => $value) {
       $result_rows[] = array(
         $key,
-        $this->renderAPIValue($value),
+        self::renderAPIValue($value),
       );
     }
 
@@ -38,8 +42,7 @@ abstract class AvivUtilController extends PhabricatorController{
     $result_head = id(new PHUIHeaderView())
       ->setHeader(pht('demagicking'));
 
-
-    return $this->buildApplicationPage(
+    return $controller->buildApplicationPage(
       array(
         $result_head,
         $result_table,
@@ -49,7 +52,7 @@ abstract class AvivUtilController extends PhabricatorController{
         'device' => true,
       ));
   }
-  function renderAPIValue($value) {
+  static function renderAPIValue($value) {
     $json = new PhutilJSON();
     if (is_array($value)) {
       $value = $json->encodeFormatted($value);

@@ -1,11 +1,17 @@
 <?php
 
-class PushToGitFindDetailsController extends AvivUtilController {
-   public function processRequest() {
+class PushCommitToGithub extends AvivUtilController {
+  public function processRequest() {
     $request = $this->getRequest();
     $viewer = $request->getUser();
 
     $pwd = '/tmp/phwork/tst__workspace/';
+    return $this->build(
+      $this->pushLastCommit($pwd, 'avivey/test-repo', $viewer));
+   }
+
+  public function pushLastCommit($workdir, $github_repo, $viewer) {
+    $pwd = $workdir;
 
     $future = new ExecFuture(
       '/bin/bash -c %s',
@@ -66,11 +72,13 @@ class PushToGitFindDetailsController extends AvivUtilController {
     $future = $this->makeCreateTreeFuture('avivey/test-repo', $head_tree, $access_token);
     $dd['create tree call'] = self::parseGithubApiFuture($future);
 
+    // todo parse author info + time.
     $future = $this->makeCommitFuture(
       'avivey/test-repo',
       $commit_info['message'],
       $commit_info['tree'],
-      $commit_info['parent'], // TODO add author data.
+      $commit_info['parent'],
+      array(), // TODO add author data.
       $access_token
       );
     $commit = self::parseGithubApiFuture($future);
@@ -82,23 +90,23 @@ class PushToGitFindDetailsController extends AvivUtilController {
       $future = $this->makeUpdateMasterFuture($repo, $commit, $access_token);
       $dd['update'] = self::parseGithubApiFuture($future);
     }
-    return $this->buildHumanReadableResponse($dd);
+    return $dd;
   }
 
-  function makeCommitFuture($repo, $message, $tree, $parent, $access_token) {
+  function makeCommitFuture($repo, $message, $tree, $parent, array $more, $access_token) {
     // todo add committer data
     // todo get information from phabricator commit object.
+
+    $author = idx($more, 'author');
+
     $data = array(
       'message' => $message,
       'tree' => $tree,
       'parents' => array($parent),
-      // todo parse author info + time.
-      'author' => array(
-        'name' => 'Aviv Eyal',
-        'email' => 'avivey@gmail.com',
-        'date' => '2013-10-27T17:10:40-0700',
-      ),
     );
+    if ($author) {
+      $data['author'] = $author;
+    }
     $future = new GithubApiCallFuture(
       "repos/$repo/git/commits",
       $access_token,
@@ -185,7 +193,7 @@ class PushToGitFindDetailsController extends AvivUtilController {
   }
 
   function parseCommit($commit) {
-    $commit = trim($commit); // I hope.
+    $commit = trim($commit);
     $text = explode("\n", $commit);
     $data = array();
     $message = array();
