@@ -11,7 +11,7 @@ class GithubApiCallFuture extends FutureProxy {
     $account = id(new PhabricatorExternalAccountQuery())
       ->setViewer($user)
       ->withUserPHIDs(array($user->getPHID()))
-      ->withAccountDomains(array("github.com")) // todo this too
+      ->withAccountDomains(array("github.com")) // todo  get this from provider.
       ->executeOne();
 
     $github_provider = PhabricatorAuthProvider::getEnabledProviderByKey(
