@@ -6,7 +6,23 @@ class LandLocally  extends AvivUtilController {
     $viewer = $request->getUser();
     $dd = array();
 
-    $diff_id = 27;
+    $revision_id = $request->getInt('revisionID');
+    if (!strlen($revision_id)) {
+      $dd['error'] = 'need param revisionID';
+      return $this->build($dd);
+    }
+
+    $revision = id(new DifferentialRevisionQuery())
+      ->withIDs(array($revision_id))
+      ->setViewer($viewer)
+      ->executeOne();
+    if (!$revision) {
+      return $this->build(array('error'=> "revision $revision_id not found"));
+    }
+
+    $diff = $revision->loadActiveDiff();
+    $diff_id = $diff->getID();
+
     $call = new ConduitCall(
       'differential.getrawdiff',
       array(
@@ -16,29 +32,24 @@ class LandLocally  extends AvivUtilController {
     $call->setUser($viewer);
     $raw_diff = $call->execute();
 
-    $dd['raw_diff'] = $raw_diff;
+    $dd['raw_diff'] = strlen($raw_diff) > 500? strlen($raw_diff).' chars' : $raw_diff;
     $tmp_file = new TempFile();
     Filesystem::writeFile($tmp_file, $raw_diff);
-    $dd['file'] = $tmp_file ."";
 
     $repo = id(new PhabricatorRepository())->
       loadOneWhere('callsign = %s', 'TST');
     $workspace = $this->getCleanWorkspace($repo);
     // $dd['path'] = $workspace;
 
-    $workspace->execxLocal('apply --index %s', $tmp_file);
+    try {
+      $workspace->execxLocal('apply --index %s', $tmp_file);
+    } catch (CommandException $ex) {
+      $dd['apply exception'] = $ex->getMessage();
+    }
     $dd['status'] = $workspace->execxLocal('status');
     $dd['status'] = $dd['status'][0];
 
     $workspace->reloadWorkingCopy();
-
-    $diff = id(new DifferentialDiffQuery())
-      ->withIDs(array($diff_id))
-      ->setViewer($viewer)
-      ->executeOne();
-
-    $revision = $diff->getRevision();
-    $dd['revision'] = $revision==null? 'null':$revision->getID();
 
     $call = new ConduitCall(
       'differential.getcommitmessage',
@@ -56,13 +67,18 @@ class LandLocally  extends AvivUtilController {
 
 
     $author_string = $author->getRealName().' <'.$author->loadPrimaryEmailAddress().'>';
-    $workspace->execxLocal(
-      '-c user.name=%s -c user.email=%s commit -m %s --author=%s',
-      // -c will set the 'commiter'
-      $viewer->getRealName(),
-      $viewer->loadPrimaryEmailAddress(),
-      $message,
-      $author_string);
+    try {
+      $workspace->execxLocal(
+        '-c user.name=%s -c user.email=%s commit -m %s --author=%s',
+        // -c will set the 'commiter'
+        $viewer->getRealName(),
+        $viewer->loadPrimaryEmailAddress(),
+        $message,
+        $author_string);
+    } catch (CommandException $ex) {
+      $dd['commit exception'] = $ex->getMessage();
+    }
+
 
     $dd['log'] = $workspace->execxLocal('log -1 --format=fuller');
     $dd['log'] = $dd['log'][0];
@@ -87,23 +103,6 @@ class LandLocally  extends AvivUtilController {
 
     return $workspace;
   }
-
-  function getDiffBundle() {
-    $diff = new DifferentialDiff();
-    $diff->attachChangesets($generated_changesets);
-    $diff_dict = $diff->getDiffDict();
-
-    $changes = array();
-    foreach ($diff_dict['changes'] as $changedict) {
-      $changes[] = ArcanistDiffChange::newFromDictionary($changedict);
-    }
-    $bundle = ArcanistBundle::newFromChanges($changes);
-
-    $bundle->setLoadFileDataCallback(array($this, 'loadFileByPHID'));
-    return $bundle;
-  }
-
-
 
   public function loadFileByPHID($phid) {
     $file = id(new PhabricatorFile())->loadOneWhere(

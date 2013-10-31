@@ -2,6 +2,10 @@
 
 abstract class AvivUtilController extends PhabricatorController{
 
+  function build($result) {
+    return $this->buildHumanReadableResponse($result);
+  }
+
   function buildHumanReadableResponse(
     $result) {
 
@@ -31,19 +35,8 @@ abstract class AvivUtilController extends PhabricatorController{
         'wide',
       ));
 
-    $param_panel = new AphrontPanelView();
-    $param_panel->setHeader('Method Parameters');
-    $param_panel->appendChild($param_table);
-
-    $result_panel = new AphrontPanelView();
-    $result_panel->setHeader('Method Result');
-    $result_panel->appendChild($result_table);
-
-    $param_head = id(new PHUIHeaderView())
-      ->setHeader(pht('Method Parameters'));
-
     $result_head = id(new PHUIHeaderView())
-      ->setHeader(pht('Method Result'));
+      ->setHeader(pht('demagicking'));
 
 
     return $this->buildApplicationPage(
@@ -52,7 +45,7 @@ abstract class AvivUtilController extends PhabricatorController{
         $result_table,
       ),
       array(
-        'title' => 'Method Call Result',
+        'title' => 'magic',
         'device' => true,
       ));
   }
